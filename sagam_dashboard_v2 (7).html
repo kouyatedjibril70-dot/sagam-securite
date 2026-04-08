@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sagam Sécurité — Dashboard Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --noir:#0a0c0f; --noir2:#111418; --noir3:#181c22; --card:#1a1f28; --card2:#1f2530;
+    --or:#c8973a; --or2:#e6b84a; --or3:#f0cc7a;
+    --rouge:#e03c3c; --vert:#2ecc71; --bleu:#3a7bd5; --orange:#e67e22;
+    --text:#e8eaf0; --text2:#9aa3b2; --text3:#5a6275;
+    --border:rgba(200,151,58,0.15); --border2:rgba(255,255,255,0.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--noir);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--noir2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+  .sidebar-logo{padding:24px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--or),var(--or2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 16px rgba(200,151,58,0.3);flex-shrink:0;}
+  .logo-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--or2);line-height:1;}
+  .logo-sub{font-size:10px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;}
+  .sidebar-nav{flex:1;padding:16px 0;display:flex;flex-direction:column;gap:2px;}
+  .nav-section{padding:6px 16px 4px;font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-weight:600;margin-top:8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:13px;color:var(--text2);border-left:2px solid transparent;transition:all 0.2s;}
+  .nav-item:hover{background:rgba(200,151,58,0.06);color:var(--text);}
+  .nav-item.active{background:rgba(200,151,58,0.1);color:var(--or2);border-left-color:var(--or);}
+  .nav-badge{margin-left:auto;background:var(--rouge);color:white;font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px;}
+  .sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);}
+  .user-card{display:flex;align-items:center;gap:10px;}
+  .user-avatar{width:32px;height:32px;background:linear-gradient(135deg,var(--or),#8b5e1a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+  .user-name{font-size:12px;font-weight:600;color:var(--text);}
+  .user-role{font-size:10px;color:var(--text3);}
+
+  /* MAIN */
+  .main{margin-left:220px;min-height:100vh;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;border-bottom:1px solid var(--border2);background:rgba(10,12,15,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50;}
+  .topbar-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;line-height:1;}
+  .topbar-date{font-size:11px;color:var(--text3);margin-top:2px;}
+  .topbar-right{display:flex;align-items:center;gap:12px;}
+  .live-badge{display:flex;align-items:center;gap:6px;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);padding:5px 11px;border-radius:20px;font-size:11px;color:var(--vert);font-weight:600;}
+  .live-dot{width:6px;height:6px;background:var(--vert);border-radius:50%;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .topbar-btn{background:var(--card);border:1px solid var(--border2);color:var(--text2);padding:7px 13px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .topbar-btn:hover{border-color:var(--border);color:var(--text);}
+
+  /* CONTENT */
+  .content{padding:24px 28px;}
+
+  /* KPI */
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;transition:transform 0.2s,border-color 0.2s;}
+  .kpi-card:hover{transform:translateY(-2px);border-color:var(--border);}
+  .kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,var(--or));opacity:0.7;}
+  .kpi-card.rouge{--accent:var(--rouge)}.kpi-card.vert{--accent:var(--vert)}.kpi-card.bleu{--accent:var(--bleu)}.kpi-card.orange{--accent:var(--orange)}
+  .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;margin-bottom:8px;}
+  .kpi-value{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--text);letter-spacing:1px;}
+  .kpi-sub{font-size:11px;color:var(--text3);margin-top:5px;}
+  .kpi-trend{color:var(--vert);font-weight:600;}.kpi-trend.down{color:var(--rouge);}
+  .kpi-icon{position:absolute;right:14px;top:14px;font-size:20px;opacity:0.12;}
+
+  /* GRIDS */
+  .grid-3{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+  .grid-col{display:flex;flex-direction:column;gap:18px;}
+
+  /* CARD */
+  .card{background:var(--card);border:1px solid var(--border2);border-radius:16px;overflow:hidden;}
+  .card-header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border2);}
+  .card-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .card-title-icon{width:24px;height:24px;background:rgba(200,151,58,0.12);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+  .card-action{font-size:11px;color:var(--or);cursor:pointer;font-weight:500;}
+  .card-body{padding:16px 20px;}
+
+  /* BAR CHART */
+  .bar-chart{display:flex;flex-direction:column;gap:10px;}
+  .bar-row{display:flex;align-items:center;gap:10px;}
+  .bar-label{font-size:11px;color:var(--text2);width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-track{flex:1;height:6px;background:var(--noir3);border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--or),var(--or2));transition:width 1s cubic-bezier(0.4,0,0.2,1);}
+  .bar-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);width:22px;text-align:right;flex-shrink:0;}
+
+  /* MAP */
+  .map-wrap{background:#0d1117;border-radius:10px;overflow:hidden;height:230px;position:relative;}
+  .map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(200,151,58,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(200,151,58,0.04) 1px,transparent 1px);background-size:28px 28px;}
+  .map-title-overlay{position:absolute;top:10px;left:12px;font-size:10px;font-weight:600;color:rgba(255,255,255,0.3);letter-spacing:1px;text-transform:uppercase;}
+  .map-pin{position:absolute;width:10px;height:10px;border-radius:50%;cursor:pointer;transition:transform 0.2s;transform:translate(-50%,-50%);}
+  .map-pin:hover{transform:translate(-50%,-50%) scale(1.8);z-index:10;}
+  .map-pin::after{content:attr(data-label);position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border);padding:3px 7px;border-radius:5px;font-size:9px;white-space:nowrap;color:var(--text);opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .map-pin:hover::after{opacity:1;}
+  .map-pin.ok{background:var(--vert);box-shadow:0 0 8px rgba(46,204,113,0.5);}
+  .map-pin.warn{background:var(--or2);box-shadow:0 0 8px rgba(230,184,74,0.5);}
+  .map-pin.alert{background:var(--rouge);box-shadow:0 0 8px rgba(224,60,60,0.5);animation:blink 1.5s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+  .map-legend{position:absolute;bottom:10px;right:10px;background:rgba(10,12,15,0.88);border:1px solid var(--border2);border-radius:8px;padding:7px 11px;display:flex;flex-direction:column;gap:5px;}
+  .map-leg-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);}
+  .map-leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+  /* DONUT */
+  .donut-wrap{display:flex;align-items:center;gap:20px;}
+  .donut-legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);}
+  .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+  .legend-val{margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);}
+
+  /* ALERT FEED */
+  .alert-feed{display:flex;flex-direction:column;}
+  .alert-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border2);align-items:flex-start;}
+  .alert-item:last-child{border-bottom:none;}
+  .alert-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+  .alert-dot.rouge{background:var(--rouge);box-shadow:0 0 5px rgba(224,60,60,0.5);}
+  .alert-dot.or{background:var(--or2);}
+  .alert-dot.vert{background:var(--vert);}
+  .alert-msg{font-size:12px;color:var(--text);line-height:1.4;}
+  .alert-meta{font-size:10px;color:var(--text3);margin-top:2px;}
+  .alert-time{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);flex-shrink:0;margin-top:2px;}
+
+  /* TABLE */
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{border-bottom:1px solid var(--border2);}
+  th{text-align:left;padding:10px 14px;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);font-weight:600;white-space:nowrap;}
+  td{padding:11px 14px;color:var(--text2);border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle;}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+  .badge.ras{background:rgba(46,204,113,0.1);color:var(--vert);border:1px solid rgba(46,204,113,0.2);}
+  .badge.incident{background:rgba(224,60,60,0.1);color:var(--rouge);border:1px solid rgba(224,60,60,0.2);}
+  .badge.retard{background:rgba(230,184,74,0.1);color:var(--or2);border:1px solid rgba(230,184,74,0.2);}
+  .sup-chip{display:flex;align-items:center;gap:7px;}
+  .sup-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--or),#5a3e10);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0;}
+  .agents-ratio{font-family:'DM Mono',monospace;font-size:11px;}
+  .agents-ratio.ok{color:var(--vert);}
+  .agents-ratio.warn{color:var(--rouge);}
+
+  /* STAT MINI */
+  .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mini-stat{background:var(--noir3);border-radius:10px;padding:12px 14px;}
+  .mini-stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);line-height:1;}
+  .mini-stat-label{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:0.5px;}
+
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:var(--noir2);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+<script>
+// ═══════════════ BASE DE DONNÉES ═══════════════
+const SUPERVISEURS=[
+  {id:"SUP-001",nom:"Moussa Diallo",brigade:"Brigade 1",zone:"Plateau / Médina",actif:true},
+  {id:"SUP-002",nom:"Fatou Ndiaye",brigade:"Brigade 2",zone:"Liberté / Mermoz",actif:true},
+  {id:"SUP-003",nom:"Ibrahima Sow",brigade:"Brigade 3",zone:"Almadies / Ngor",actif:true},
+  {id:"SUP-004",nom:"Aminata Fall",brigade:"Brigade 4",zone:"Point E / Fann",actif:true},
+  {id:"SUP-005",nom:"Omar Ba",brigade:"Brigade 2",zone:"Liberté / Ouakam",actif:true},
+  {id:"SUP-006",nom:"Rokhaya Diop",brigade:"Brigade 1",zone:"Plateau / Gorée",actif:true},
+  {id:"SUP-007",nom:"Abdou Thiaw",brigade:"Brigade 3",zone:"Yoff / Ngor",actif:true},
+];
+
+const POSTES=[
+  {id:"POST-001",nom:"SGBS Plateau",         type:"Banque",      brigade:"Brigade 1",lat:58,lng:72,agents_requis:3,actif:true},
+  {id:"POST-002",nom:"BICIS Médina",          type:"Banque",      brigade:"Brigade 2",lat:70,lng:62,agents_requis:2,actif:true},
+  {id:"POST-003",nom:"Banque BIS Almadies",   type:"Banque",      brigade:"Brigade 1",lat:25,lng:18,agents_requis:2,actif:true},
+  {id:"POST-004",nom:"Ecobank Mermoz",        type:"Banque",      brigade:"Brigade 3",lat:45,lng:45,agents_requis:2,actif:true},
+  {id:"POST-005",nom:"Hôtel Terrou-Bi",       type:"Hôtel",       brigade:"Brigade 1",lat:52,lng:35,agents_requis:4,actif:true},
+  {id:"POST-006",nom:"King Fahd Palace",      type:"Hôtel",       brigade:"Brigade 2",lat:15,lng:12,agents_requis:5,actif:true},
+  {id:"POST-007",nom:"Auchan Liberté 6",      type:"Commerce",    brigade:"Brigade 2",lat:35,lng:55,agents_requis:3,actif:true},
+  {id:"POST-008",nom:"Centre Commercial",     type:"Commerce",    brigade:"Brigade 4",lat:62,lng:48,agents_requis:2,actif:true},
+  {id:"POST-009",nom:"Clinique du Cap",       type:"Santé",       brigade:"Brigade 3",lat:20,lng:28,agents_requis:3,actif:true},
+  {id:"POST-010",nom:"Hôpital Principal",     type:"Santé",       brigade:"Brigade 4",lat:75,lng:65,agents_requis:4,actif:true},
+  {id:"POST-011",nom:"Ambassade de France",   type:"Institution", brigade:"Brigade 1",lat:18,lng:8,agents_requis:5,actif:true},
+  {id:"POST-012",nom:"BCEAO Siège",           type:"Institution", brigade:"Brigade 1",lat:62,lng:55,agents_requis:5,actif:true},
+  {id:"POST-013",nom:"Résidence Point E",     type:"Résidence",   brigade:"Brigade 2",lat:48,lng:60,agents_requis:2,actif:true},
+  {id:"POST-014",nom:"Villa Mermoz",          type:"Résidence",   brigade:"Brigade 3",lat:40,lng:38,agents_requis:1,actif:true},
+  {id:"POST-015",nom:"Villa Ngor",            type:"Résidence",   brigade:"Brigade 3",lat:8,lng:20,agents_requis:1,actif:true},
+];
+
+const RONDES=[
+  {id:"RND-001",date:"2026-04-08",heure:"05:20",sup:"Rokhaya Diop",poste:"Ambassade de France",brigade:"Brigade 1",presents:5,requis:5,statut:"RAS",incident:false},
+  {id:"RND-002",date:"2026-04-08",heure:"05:45",sup:"Aminata Fall",poste:"Résidence Fann",brigade:"Brigade 4",presents:2,requis:2,statut:"RAS",incident:false},
+  {id:"RND-003",date:"2026-04-08",heure:"06:30",sup:"Omar Ba",poste:"Auchan Liberté 6",brigade:"Brigade 2",presents:3,requis:3,statut:"Retard",incident:false},
+  {id:"RND-004",date:"2026-04-08",heure:"07:48",sup:"Fatou Ndiaye",poste:"SGBS Plateau",brigade:"Brigade 1",presents:3,requis:3,statut:"RAS",incident:false},
+  {id:"RND-005",date:"2026-04-08",heure:"07:52",sup:"Moussa Diallo",poste:"Hôtel Terrou-Bi",brigade:"Brigade 1",presents:4,requis:4,statut:"RAS",incident:false},
+  {id:"RND-006",date:"2026-04-08",heure:"08:02",sup:"Moussa Diallo",poste:"Résidence Point E",brigade:"Brigade 2",presents:2,requis:2,statut:"RAS",incident:false},
+  {id:"RND-007",date:"2026-04-08",heure:"08:14",sup:"Ibrahima Sow",poste:"BICIS Médina",brigade:"Brigade 2",presents:1,requis:2,statut:"Incident",incident:true,description:"Agent absent. Tentative d'intrusion côté parking."},
+  {id:"RND-008",date:"2026-04-08",heure:"08:30",sup:"Fatou Ndiaye",poste:"Clinique du Cap",brigade:"Brigade 3",presents:3,requis:3,statut:"RAS",incident:false},
+  {id:"RND-009",date:"2026-04-08",heure:"09:10",sup:"Abdou Thiaw",poste:"Banque BIS Almadies",brigade:"Brigade 1",presents:2,requis:2,statut:"Incident",incident:true,description:"Alarme déclenchée sans cause. Fausse alerte confirmée."},
+  {id:"RND-010",date:"2026-04-08",heure:"09:45",sup:"Aminata Fall",poste:"Hôpital Principal",brigade:"Brigade 4",presents:4,requis:4,statut:"RAS",incident:false},
+];
+
+const RONDES_PAR_JOUR=[
+  {jour:"Mer",nb:22},{jour:"Jeu",nb:25},{jour:"Ven",nb:28},
+  {jour:"Sam",nb:30},{jour:"Dim",nb:27},{jour:"Lun",nb:34},{jour:"Auj",nb:28}
+];
+
+const RONDES_PAR_SUP=[
+  {nom:"Moussa Diallo",nb:46},{nom:"Fatou Ndiaye",nb:42},
+  {nom:"Ibrahima Sow",nb:38},{nom:"Aminata Fall",nb:34},
+  {nom:"Omar Ba",nb:30},{nom:"Rokhaya Diop",nb:25},{nom:"Abdou Thiaw",nb:22}
+];
+
+const TYPES_SITES=[
+  {type:"Banque",      nb:4, pct:27, color:"#3a7bd5"},
+  {type:"Hôtel",       nb:2, pct:13, color:"#e03c3c"},
+  {type:"Commerce",    nb:2, pct:13, color:"#2ecc71"},
+  {type:"Santé",       nb:2, pct:13, color:"#e67e22"},
+  {type:"Institution", nb:2, pct:13, color:"#9b59b6"},
+  {type:"Résidence",   nb:3, pct:20, color:"#c8973a"},
+];
+
+const INCIDENTS_JOUR=RONDES.filter(r=>r.incident);
+const RETARDS_JOUR=RONDES.filter(r=>r.statut==="Retard");
+</script>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <div class="logo-title">SAGAM</div>
+      <div class="logo-sub">Système de Suivi</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active">📊 Tableau de Bord</div>
+    <div class="nav-item">🗺️ Carte des Postes</div>
+    <div class="nav-item">📋 Formulaires <span class="nav-badge" id="navBadge">2</span></div>
+    <div class="nav-section">Supervision</div>
+    <div class="nav-item">👮 Agents</div>
+    <div class="nav-item">🧑‍✈️ Superviseurs</div>
+    <div class="nav-item">🚨 Incidents <span class="nav-badge" id="navIncident">2</span></div>
+    <div class="nav-section">Rapports</div>
+    <div class="nav-item">📈 Statistiques</div>
+    <div class="nav-item">📤 Exports</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar">DK</div>
+      <div>
+        <div class="user-name">Djibril K.</div>
+        <div class="user-role">Administrateur</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">TABLEAU DE BORD</div>
+      <div class="topbar-date" id="topDate">—</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div> EN DIRECT</div>
+      <button class="topbar-btn">📤 Exporter</button>
+      <button class="topbar-btn">🔔 Alertes (<span id="alertCount">2</span>)</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- KPI -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <!-- ROW 1 -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><div class="card-title-icon">📈</div> Rondes par jour — 7 derniers jours</div>
+          <span class="card-action">Détails →</span>
+        </div>
+        <div class="card-body"><svg id="lineChart" width="100%" height="160" viewBox="0 0 580 160"></svg></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><div class="card-title-icon">🗺️</div> Carte des Postes — Dakar</div>
+          <span class="card-action">Voir tout →</span>
+        </div>
+        <div class="card-body" style="padding:12px 16px;">
+          <div class="map-wrap" id="mapWrap" style="height:260px;">
+            <div class="map-grid"></div>
+            <div class="map-title-overlay">DAKAR — SÉNÉGAL</div>
+            <div class="map-legend">
+              <div class="map-leg-item"><div class="map-leg-dot" style="background:var(--vert)"></div> Normal</div>
+              <div class="map-leg-item"><div class="map-leg-dot" style="background:var(--or2)"></div> Retard</div>
+              <div class="map-leg-item"><div class="map-leg-dot" style="background:var(--rouge)"></div> Incident</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ROW 2 -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><div class="card-title-icon">🧑‍✈️</div> Performance Superviseurs — Ce mois</div>
+          <span class="card-action">Rapport →</span>
+        </div>
+        <div class="card-body"><div class="bar-chart" id="supChart"></div></div>
+      </div>
+      <div class="grid-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><div class="card-title-icon">🏷️</div> Répartition par Type</div>
+          </div>
+          <div class="card-body">
+            <div class="donut-wrap">
+              <svg id="donutSvg" width="90" height="90" viewBox="0 0 90 90" style="flex-shrink:0"></svg>
+              <div class="donut-legend" id="donutLegend"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><div class="card-title-icon">🔔</div> Alertes Récentes</div>
+            <span class="card-action">Tout voir →</span>
+          </div>
+          <div class="card-body" style="padding-top:6px;padding-bottom:6px;">
+            <div class="alert-feed" id="alertFeed"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- TABLE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="card-title-icon">📋</div> Dernières Soumissions du Jour</div>
+        <span class="card-action">Voir tout →</span>
+      </div>
+      <div class="card-body" style="padding:0 0 4px;">
+        <div class="table-wrap"><table id="mainTable"></table></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ══════════════════════════════════════════════════
+//  CONNEXION GOOGLE SHEETS — TEMPS RÉEL
+// ══════════════════════════════════════════════════
+
+// ID de votre Google Sheets
+const SHEET_ID  = "1XQZoKJGXx7nrA5BSWBPrUXpvxmHVY-JKBOmJ3WfFneE";
+// Sans &sheet= Google prend automatiquement la première feuille active
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+// Rafraîchissement automatique toutes les 60 secondes
+const REFRESH_INTERVAL = 60000;
+
+// CSS animation
+const style = document.createElement('style');
+style.textContent = `@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}`;
+document.head.appendChild(style);
+
+// ── Date topbar ──
+const now = new Date();
+document.getElementById('topDate').textContent =
+  now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) +
+  ' — Mise à jour : ' + now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+// ── Fonction principale : charger les données depuis Google Sheets ──
+async function chargerDonnees() {
+  try {
+    const res  = await fetch(SHEET_URL + '&t=' + Date.now());
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/)[1]);
+    const rows = json.table.rows;
+    const cols = json.table.cols.map(c => c.label);
+
+    const rondes = rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => {
+        const cell = row.c[i];
+        if (!cell || cell.v === null || cell.v === undefined) { obj[col] = ''; return; }
+
+        // Date → utiliser la valeur formatée "f" directement + créer objet Date
+        if (col === 'Date') {
+          obj[col] = cell.f || '';
+          // Parser "Date(2026,3,8)" → mois Google est 0-indexé
+          if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
+            const p = cell.v.replace('Date(','').replace(')','').split(',').map(Number);
+            obj['Date_obj'] = new Date(p[0], p[1], p[2]);
+          }
+        }
+        // Heures → utiliser la valeur formatée "f" directement ex: "05:20"
+        else if (col === 'Heure_Arrivee' || col === 'Heure_Releve') {
+          obj[col] = cell.f || '';
+        }
+        // Tous les autres champs normalement
+        else {
+          obj[col] = cell.v;
+        }
+      });
+      return obj;
+    }).filter(r => r['Superviseur'] && String(r['Superviseur']).trim() !== '');
+
+    renderDashboard(rondes);
+
+    const maintenant = new Date();
+    document.getElementById('topDate').textContent =
+      maintenant.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) +
+      ' — Mis à jour à ' + maintenant.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+
+  } catch (err) {
+    console.warn('Sheets indisponible — données de démo', err);
+    renderDashboard(RONDES_DEMO);
+  }
+}
+
+// ── Rendu complet du dashboard ──
+function renderDashboard(rondes) {
+
+  // Aujourd'hui
+  const todayStr = new Date().toISOString().slice(0,10);
+  const rondesToday = rondes.filter(r => {
+    const d = r['Date_obj'];
+    return d && !isNaN(d) && d.toISOString().slice(0,10) === todayStr;
+  });
+
+  const totalRondes   = rondes.length;
+  const incidents     = rondes.filter(r => String(r.Probleme).toUpperCase() === 'OUI').length;
+  const incidentsAuj  = rondesToday.filter(r => String(r.Probleme).toUpperCase() === 'OUI').length;
+  const rondesAuj     = rondesToday.length || rondes.length;
+  const nbSup         = [...new Set(rondes.map(r=>r.Superviseur).filter(Boolean))].length;
+
+  // Calcul taux présence agents
+  const totalAgents   = rondes.reduce((s,r)=>s+(parseInt(r.Nb_Agents)||0),0);
+  const totalRequisEst= totalRondes * 3; // estimation moyenne 3 agents/poste
+  const tauxPresence  = totalRequisEst > 0 ? Math.min(99, Math.round(totalAgents/totalRequisEst*100)) : 96;
+
+  // ── KPI ──
+  const kpis = [
+    {label:'Postes Actifs',      val:POSTES.length,  sub:'Sur Dakar',                          icon:'🏢', cls:''},
+    {label:'Agents Enregistrés', val:totalAgents,    sub:`${tauxPresence}% taux présence`,      icon:'👮', cls:'vert'},
+    {label:'Rondes Aujourd\'hui',val:rondesAuj,       sub:`sur ${Math.max(rondesAuj,14)} planifiées`, icon:'🧑‍✈️', cls:''},
+    {label:'Incidents',          val:incidents,       sub:'Non résolus au total',               icon:'🚨', cls:incidents>0?'rouge':''},
+    {label:'Formulaires Reçus',  val:totalRondes,     sub:`${nbSup} superviseurs actifs`,       icon:'📋', cls:''},
+  ];
+  document.getElementById('kpiGrid').innerHTML = kpis.map((k,i)=>`
+    <div class="kpi-card ${k.cls}" style="animation:fadeUp 0.5s ease ${0.05+i*0.07}s both">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.cls==='rouge'&&k.val>0?'var(--rouge)':k.cls==='vert'?'var(--vert)':'var(--text)'}">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // Badges sidebar
+  document.getElementById('navBadge').textContent    = rondesAuj;
+  document.getElementById('navIncident').textContent = incidentsAuj || incidents;
+  document.getElementById('alertCount').textContent  = incidentsAuj || incidents;
+
+  // ── Graphique rondes par jour (7 derniers jours) ──
+  const parJourMap = {};
+  rondes.forEach(r => {
+    const dateObj = r['Date_obj'];
+    if (!dateObj || isNaN(dateObj)) return;
+    const key = dateObj.toISOString().slice(0,10); // YYYY-MM-DD
+    if (!parJourMap[key]) parJourMap[key] = { date: dateObj, nb: 0 };
+    parJourMap[key].nb++;
+  });
+
+  const joursNoms = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const jours7 = Object.entries(parJourMap)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .slice(-7)
+    .map(([key, val], idx, arr) => ({
+      jour: idx === arr.length - 1 ? 'Auj' : joursNoms[val.date.getDay()],
+      nb: val.nb
+    }));
+
+  if (jours7.length > 0) renderLineChart(jours7);
+  else renderLineChart([{jour:'Auj', nb: rondes.length}]);
+
+  // ── Carte des postes ──
+  renderMap(rondes);
+
+  // ── Bar chart superviseurs ──
+  const parSup = {};
+  rondes.forEach(r => { if(r.Superviseur) parSup[r.Superviseur] = (parSup[r.Superviseur]||0)+1; });
+  const supSorted = Object.entries(parSup).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const maxSup = supSorted[0] ? supSorted[0][1] : 1;
+  document.getElementById('supChart').innerHTML = supSorted.map(([nom,nb])=>`
+    <div class="bar-row">
+      <div class="bar-label">${nom.split(' ')[0]} ${(nom.split(' ')[1]||'')[0]||''}.</div>
+      <div class="bar-track"><div class="bar-fill" style="width:0%" data-w="${Math.round(nb/maxSup*100)}%"></div></div>
+      <div class="bar-val">${nb}</div>
+    </div>`).join('');
+  setTimeout(()=>{ document.querySelectorAll('.bar-fill').forEach(b=>{ b.style.width=b.dataset.w; }); },300);
+
+  // ── Donut types de sites ──
+  renderDonut();
+
+  // ── Alertes ──
+  const dernRondes = rondes.slice(-20).reverse();
+
+  // Formater heure — déjà une chaîne "05:20" grâce au parseur
+  const fmtHeure = (h) => {
+    if (!h) return '—';
+    return String(h).slice(0,5);
+  };
+
+  const alertes = [
+    ...dernRondes.filter(r=>String(r.Probleme).toUpperCase()==='OUI')
+      .map(r=>({type:'rouge', msg:`Incident — ${r.Poste||'Poste inconnu'}`, meta:`Superviseur : ${(r.Superviseur||'').split(' ')[0]} · ${r.Brigade||''}`, time:fmtHeure(r.Heure_Arrivee)})),
+    ...dernRondes.filter(r=>String(r.Remarques||'').toLowerCase().includes('retard'))
+      .map(r=>({type:'or', msg:`Retard signalé — ${r.Poste||'Poste inconnu'}`, meta:`Superviseur : ${(r.Superviseur||'').split(' ')[0]} · ${r.Brigade||''}`, time:fmtHeure(r.Heure_Arrivee)})),
+    ...dernRondes.filter(r=>String(r.Probleme).toUpperCase()!=='OUI' && !String(r.Remarques||'').toLowerCase().includes('retard')).slice(0,2)
+      .map(r=>({type:'vert', msg:`Ronde complète — ${r.Poste||'Poste inconnu'}`, meta:`Superviseur : ${(r.Superviseur||'').split(' ')[0]} · ${r.Brigade||''}`, time:fmtHeure(r.Heure_Arrivee)})),
+  ].slice(0,5);
+  document.getElementById('alertFeed').innerHTML = alertes.length > 0
+    ? alertes.map(a=>`
+      <div class="alert-item">
+        <div class="alert-dot ${a.type}"></div>
+        <div style="flex:1">
+          <div class="alert-msg">${a.msg}</div>
+          <div class="alert-meta">${a.meta}</div>
+        </div>
+        <div class="alert-time">${a.time}</div>
+      </div>`).join('')
+    : `<div style="padding:16px 0;text-align:center;color:var(--text3);font-size:12px">Aucune alerte pour l'instant</div>`;
+
+  // ── Table dernières soumissions ──
+  const hdrs = ['Superviseur','Poste Visité','Brigade','Agents','Heure','Statut'];
+  const rows = rondes.slice(-10).reverse().map(r => {
+    const initiales = (r.Superviseur||'??').split(' ').map(w=>w[0]).join('').slice(0,2);
+    const estIncident= String(r.Probleme).toUpperCase()==='OUI';
+    const estRetard  = String(r.Remarques||'').toLowerCase().includes('retard');
+    const statut     = estIncident ? 'Incident' : estRetard ? 'Retard' : 'RAS';
+    const heure      = fmtHeure(r.Heure_Arrivee);
+    return `
+      <tr>
+        <td><div class="sup-chip"><div class="sup-av">${initiales}</div>${r.Superviseur||'—'}</div></td>
+        <td>${r.Poste||'—'}</td>
+        <td>${r.Brigade||'—'}</td>
+        <td class="agents-ratio ok">${r.Nb_Agents||'—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px">${heure}</td>
+        <td><span class="badge ${statut==='RAS'?'ras':statut==='Incident'?'incident':'retard'}">
+          ${statut==='RAS'?'● RAS':statut==='Incident'?'⚠ Incident':'⏱ Retard'}
+        </span></td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('mainTable').innerHTML = rows
+    ? `<thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody>`
+    : `<thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+       <tbody><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">
+         Aucune donnée reçue — Soumettez un formulaire pour voir les résultats ici
+       </td></tr></tbody>`;
+}
+
+// ── Graphique courbe ──
+function renderLineChart(pts) {
+  const svg = document.getElementById('lineChart');
+  const W=580, H=160, padL=35, padB=22, padT=20;
+  const maxVal = Math.max(...pts.map(p=>p.nb), 10);
+  // Arrondir maxVal au multiple de 10 supérieur
+  const maxY = Math.ceil(maxVal/10)*10;
+  const chartW = W - padL - 10;
+  const chartH = H - padB - padT;
+
+  const xs = pts.map((_,i)=> padL + i * chartW/(pts.length-1));
+  const ys = pts.map(p=> padT + chartH - (p.nb/maxY)*chartH);
+
+  const pathD = xs.map((x,i)=>(i===0?'M':'L')+x+' '+ys[i]).join(' ');
+  const areaD = pathD + ` L${xs[xs.length-1]} ${H-padB} L${xs[0]} ${H-padB} Z`;
+
+  // Lignes de grille horizontales avec valeurs
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(pct => {
+    const y = padT + chartH - pct*chartH;
+    const val = Math.round(pct * maxY);
+    return `
+      <line x1="${padL}" y1="${y}" x2="${W-10}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="${padL-6}" y="${y+4}" text-anchor="end" fill="#5a6275" font-size="9" font-family="DM Mono">${val}</text>`;
+  }).join('');
+
+  svg.innerHTML = `
+    <defs><linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c8973a" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#c8973a" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${gridLines}
+    <path d="${areaD}" fill="url(#lg2)"/>
+    <path d="${pathD}" fill="none" stroke="#c8973a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${xs.map((x,i)=>`
+      <circle cx="${x}" cy="${ys[i]}" r="${i===pts.length-1?5:4}"
+        fill="${i===pts.length-1?'#f0cc7a':'#c8973a'}"
+        ${i===pts.length-1?'stroke="#1a1f28" stroke-width="2"':''}/>
+      <text x="${x}" y="${H-5}" text-anchor="middle"
+        fill="${i===pts.length-1?'#9aa3b2':'#5a6275'}" font-size="9" font-family="DM Mono">
+        ${pts[i].jour}
+      </text>
+      <text x="${x}" y="${ys[i]-8}" text-anchor="middle" fill="#9aa3b2" font-size="9" font-family="DM Mono">
+        ${pts[i].nb}
+      </text>
+    `).join('')}`;
+}
+
+// ── Carte — toujours basée sur POSTES (coordonnées fixes et dispersées) ──
+function renderMap(rondes) {
+  const map = document.getElementById('mapWrap');
+  map.querySelectorAll('.map-pin').forEach(p=>p.remove());
+
+  // Postes avec incidents dans les données réelles
+  const incidentPostes = rondes
+    .filter(r => String(r.Probleme).toUpperCase() === 'OUI')
+    .map(r => String(r.Poste || '').trim());
+
+  const retardPostes = rondes
+    .filter(r => String(r.Remarques||'').toLowerCase().includes('retard'))
+    .map(r => String(r.Poste || '').trim());
+
+  POSTES.forEach(p => {
+    const pin = document.createElement('div');
+    const isIncident = incidentPostes.some(nom => nom.includes(p.nom) || p.nom.includes(nom));
+    const isRetard   = retardPostes.some(nom => nom.includes(p.nom) || p.nom.includes(nom));
+    pin.className = 'map-pin ' + (isIncident ? 'alert' : isRetard ? 'warn' : 'ok');
+    pin.style.left = p.lng + '%';
+    pin.style.top  = p.lat + '%';
+    pin.setAttribute('data-label', p.nom);
+    map.appendChild(pin);
+  });
+}
+
+// ── Donut ──
+function renderDonut() {
+  const svg = document.getElementById('donutSvg');
+  const legend = document.getElementById('donutLegend');
+  let offset = 0;
+  const total = TYPES_SITES.reduce((a,b)=>a+b.nb,0);
+  let circles = '';
+  const C = 2*Math.PI*35;
+  TYPES_SITES.forEach(t=>{
+    const dash = (t.nb/total)*C;
+    circles += `<circle cx="45" cy="45" r="35" fill="none" stroke="${t.color}" stroke-width="14"
+      stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 45 45)"/>`;
+    offset += dash;
+  });
+  svg.innerHTML = `
+    <circle cx="45" cy="45" r="35" fill="none" stroke="#1f2530" stroke-width="14"/>
+    ${circles}
+    <text x="45" y="49" text-anchor="middle" fill="#e8eaf0" font-size="13" font-family="Bebas Neue" letter-spacing="1">${total}</text>`;
+  legend.innerHTML = TYPES_SITES.map(t=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${t.color}"></div>
+      ${t.type} <span class="legend-val">${t.pct}%</span>
+    </div>`).join('');
+}
+
+// ── Données de démo (fallback si pas encore de soumissions) ──
+const RONDES_DEMO = [
+  {Date:'08/04/2026',Heure_Arrivee:'07:48',Superviseur:'Fatou Ndiaye',   Poste:'SGBS Plateau',        Brigade:'Brigade 1',Nb_Agents:3,Probleme:'NON',Description_Incident:'',Remarques:'RAS'},
+  {Date:'08/04/2026',Heure_Arrivee:'08:02',Superviseur:'Moussa Diallo',  Poste:'Hôtel Terrou-Bi',     Brigade:'Brigade 1',Nb_Agents:4,Probleme:'NON',Description_Incident:'',Remarques:''},
+  {Date:'08/04/2026',Heure_Arrivee:'08:14',Superviseur:'Ibrahima Sow',   Poste:'BICIS Médina',        Brigade:'Brigade 2',Nb_Agents:1,Probleme:'OUI',Description_Incident:'Agent absent. Tentative intrusion.',Remarques:'Renfort demandé'},
+  {Date:'08/04/2026',Heure_Arrivee:'08:30',Superviseur:'Fatou Ndiaye',   Poste:'Clinique du Cap',     Brigade:'Brigade 3',Nb_Agents:3,Probleme:'NON',Description_Incident:'',Remarques:'RAS'},
+  {Date:'08/04/2026',Heure_Arrivee:'09:10',Superviseur:'Abdou Thiaw',    Poste:'Banque BIS Almadies', Brigade:'Brigade 1',Nb_Agents:2,Probleme:'OUI',Description_Incident:'Alarme déclenchée. Fausse alerte.',Remarques:''},
+  {Date:'08/04/2026',Heure_Arrivee:'09:45',Superviseur:'Aminata Fall',   Poste:'Hôpital Principal',   Brigade:'Brigade 4',Nb_Agents:4,Probleme:'NON',Description_Incident:'',Remarques:'Excellent travail'},
+];
+
+// ── Lancement au démarrage ──
+chargerDonnees();
+
+// ── Rafraîchissement automatique toutes les 60 secondes ──
+setInterval(chargerDonnees, REFRESH_INTERVAL);
+</script>
+</body>
+</html>
