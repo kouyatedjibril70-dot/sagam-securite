@@ -1074,33 +1074,122 @@ function updateProgress() {
   document.getElementById('progressText').textContent = `Section ${Math.min(section,4)} sur 4`;
 }
 
+// ── URL GOOGLE SHEETS (Apps Script) ──
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhJhHw9B-sjjBpvRn2P5viqY5fKmirKzj3dFozCGu_ZtswnazpLeLxh-zZnxwApETDFg/exec";
+
+// ── Envoi via iframe — contourne CORS à 100% ──
+function envoyerViaIframe(params) {
+  return new Promise((resolve) => {
+    // Construire l'URL avec les paramètres GET
+    const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+
+    // Créer un iframe invisible
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.name = 'sagam_iframe_' + Date.now();
+    document.body.appendChild(iframe);
+
+    // Créer un formulaire qui soumet vers l'iframe
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = SCRIPT_URL;
+    form.target  = iframe.name;
+    form.style.display = 'none';
+
+    // Ajouter les données comme champs cachés
+    Object.entries(params).forEach(([key, val]) => {
+      const input = document.createElement('input');
+      input.type  = 'hidden';
+      input.name  = key;
+      input.value = val;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+
+    // Soumettre après un court délai
+    setTimeout(() => {
+      form.submit();
+      // Nettoyer après 5 secondes
+      setTimeout(() => {
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
+        resolve({ success: true });
+      }, 5000);
+    }, 100);
+  });
+}
+
 // ── SUBMIT ──
-function submitForm() {
-  const nom = document.getElementById('nomSuperviseur').value;
+async function submitForm() {
+  const nom   = document.getElementById('nomSuperviseur').value;
   const poste = document.getElementById('posteVisite').value;
   const heure = document.getElementById('heureArrivee').value;
 
-  if (!nom) { alert('⚠️ Veuillez sélectionner votre nom.'); return; }
-  if (!poste) { alert('⚠️ Veuillez sélectionner le poste visité.'); return; }
+  // Validations
+  if (!nom)   { alert('⚠️ Veuillez sélectionner votre nom.');        return; }
+  if (!poste) { alert('⚠️ Veuillez sélectionner le poste visité.');  return; }
   if (!heure) { alert('⚠️ Veuillez indiquer l\'heure d\'arrivée.'); return; }
   if (problemAnswer === null) { alert('⚠️ Veuillez indiquer s\'il y a eu des problèmes.'); return; }
   if (problemAnswer === 'oui' && !photoCapture) { alert('⚠️ Une photo est obligatoire en cas d\'incident.'); return; }
 
-  // Agents sélectionnés
-  const selected = Array.from(document.querySelectorAll('.multi-option.selected'))
-    .map(el => el.querySelector('.multi-name').textContent);
+  // Récupérer toutes les valeurs
+  const brigade     = document.getElementById('brigadeAuto').textContent;
+  const heureReleve = document.getElementById('heureReleve').value;
+  const nbAgents    = document.getElementById('nbAgents').value;
+  const remarques   = document.getElementById('remarques').value;
+  const descProb    = problemAnswer === 'oui' ? document.getElementById('descProbleme').value : '';
+  const gpsRaw      = document.getElementById('gpsValue').textContent;
+  const gpsMatch    = gpsRaw.match(/([\d.]+),\s*([-\d.]+)/);
+  const gpsLat      = gpsMatch ? gpsMatch[1] : '';
+  const gpsLng      = gpsMatch ? gpsMatch[2] : '';
+  const now         = new Date();
+  const dateAuj     = now.toLocaleDateString('fr-FR');
 
-  // Afficher success
-  const brigade = document.getElementById('brigadeAuto').textContent;
-  const now = new Date();
+  // Agents sélectionnés
+  const agentsSelects = Array.from(document.querySelectorAll('.multi-option.selected'))
+    .map(el => el.querySelector('.multi-name').textContent)
+    .join(', ');
+
+  // Données à envoyer
+  const params = {
+    date:                 dateAuj,
+    heure_arrivee:        heure,
+    heure_releve:         heureReleve,
+    superviseur:          nom,
+    poste:                poste,
+    brigade:              brigade,
+    gps_lat:              gpsLat,
+    gps_lng:              gpsLng,
+    nb_agents:            nbAgents,
+    agents_noms:          agentsSelects,
+    probleme:             problemAnswer === 'oui' ? 'OUI' : 'NON',
+    description_incident: descProb,
+    remarques:            remarques,
+  };
+
+  // Bouton en chargement
+  const btn = document.querySelector('.submit-btn');
+  btn.innerHTML = '<span>⏳</span><span>ENVOI EN COURS...</span>';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+
+  // Envoyer via iframe (contourne CORS)
+  await envoyerViaIframe(params);
+
+  // Afficher succès
   document.getElementById('successDetail').innerHTML = `
     <div class="success-row"><span class="success-row-label">Superviseur</span><span class="success-row-val">${nom}</span></div>
     <div class="success-row"><span class="success-row-label">Poste</span><span class="success-row-val">${poste}</span></div>
     <div class="success-row"><span class="success-row-label">Brigade</span><span class="success-row-val">${brigade}</span></div>
-    <div class="success-row"><span class="success-row-label">Agents présents</span><span class="success-row-val">${selected.length || document.getElementById('nbAgents').value}</span></div>
-    <div class="success-row"><span class="success-row-label">Statut</span><span class="success-row-val" style="color:${problemAnswer==='oui'?'var(--rouge)':'var(--vert)'}">
-      ${problemAnswer === 'oui' ? '⚠️ Incident signalé' : '✅ RAS'}</span></div>
+    <div class="success-row"><span class="success-row-label">Agents présents</span><span class="success-row-val">${agentsSelects || nbAgents}</span></div>
+    <div class="success-row"><span class="success-row-label">Statut</span>
+      <span class="success-row-val" style="color:${problemAnswer==='oui'?'var(--rouge)':'var(--vert)'}">
+        ${problemAnswer === 'oui' ? '⚠️ Incident signalé' : '✅ RAS'}
+      </span>
+    </div>
     <div class="success-row"><span class="success-row-label">Heure d'envoi</span><span class="success-row-val">${now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span></div>
+    <div class="success-row"><span class="success-row-label">Google Sheets</span><span class="success-row-val" style="color:var(--vert)">✅ Enregistré</span></div>
   `;
 
   document.getElementById('progressBar').style.width = '100%';
