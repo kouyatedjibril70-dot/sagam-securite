@@ -1074,48 +1074,63 @@ function updateProgress() {
   document.getElementById('progressText').textContent = `Section ${Math.min(section,4)} sur 4`;
 }
 
-// ── URL GOOGLE SHEETS (Apps Script) ──
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzhJhHw9B-sjjBpvRn2P5viqY5fKmirKzj3dFozCGu_ZtswnazpLeLxh-zZnxwApETDFg/exec";
+// ── URL Google Forms — connexion directe garantie ──
+const GOOGLE_FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLScaCQcu6RtCTPQSMjPad3YLjUShnNYginzj87qdHpARgVf0cA/formResponse";
 
-// ── Envoi via iframe — contourne CORS à 100% ──
+// Correspondance champs → entry IDs Google Forms
+const FORM_ENTRIES = {
+  date:                 "entry.1548404070",
+  heure_arrivee:        "entry.1924082350",
+  heure_releve:         "entry.2137470748",
+  superviseur:          "entry.2020306874",
+  poste:                "entry.2081680463",
+  brigade:              "entry.1668185590",
+  gps_lat:              "entry.896708812",
+  gps_lng:              "entry.506029777",
+  nb_agents:            "entry.2065462289",
+  agents_noms:          "entry.1900583233",
+  probleme:             "entry.1786076826",
+  description_incident: "entry.1243674567",
+  remarques:            "entry.1752358532",
+};
+
+// ── Envoi vers Google Forms via iframe invisible ──
 function envoyerViaIframe(params) {
   return new Promise((resolve) => {
-    // Construire l'URL avec les paramètres GET
-    const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
-
     // Créer un iframe invisible
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
-    iframe.name = 'sagam_iframe_' + Date.now();
+    iframe.name = 'sagam_gf_' + Date.now();
     document.body.appendChild(iframe);
 
-    // Créer un formulaire qui soumet vers l'iframe
+    // Créer un formulaire HTML qui pointe vers Google Forms
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = SCRIPT_URL;
-    form.target  = iframe.name;
+    form.action = GOOGLE_FORM_URL;
+    form.target = iframe.name;
     form.style.display = 'none';
 
-    // Ajouter les données comme champs cachés
+    // Mapper les données vers les entry IDs Google Forms
     Object.entries(params).forEach(([key, val]) => {
-      const input = document.createElement('input');
-      input.type  = 'hidden';
-      input.name  = key;
-      input.value = val;
-      form.appendChild(input);
+      const entryId = FORM_ENTRIES[key];
+      if (entryId) {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = entryId;
+        input.value = val || '';
+        form.appendChild(input);
+      }
     });
 
     document.body.appendChild(form);
 
-    // Soumettre après un court délai
+    // Soumettre
     setTimeout(() => {
       form.submit();
-      // Nettoyer après 5 secondes
       setTimeout(() => {
-        document.body.removeChild(form);
-        document.body.removeChild(iframe);
+        try { document.body.removeChild(form); document.body.removeChild(iframe); } catch(e){}
         resolve({ success: true });
-      }, 5000);
+      }, 3000);
     }, 100);
   });
 }
